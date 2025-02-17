@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Video;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use ProtoneMedia\LaravelFFMpeg\Support\FFMpeg;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -20,7 +21,9 @@ class VideoController extends Controller
 
     public function show(Video $video)
     {
-        return view('videos.show', compact('video'));
+        return Inertia::render('VideoShow', [
+            'video' => $video,
+        ]);
     }
 
     public function search(Request $request)
@@ -31,6 +34,12 @@ class VideoController extends Controller
         return Inertia::render('Dashboard', [
             'videos' => $videos,
         ]);
+    }
+
+    public function update(Video $video, Request $request)
+    {
+        $video->update($request->all());
+        return redirect()->route('dashboard');
     }
 
     public function stream(Video $video, Request $request)

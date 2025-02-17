@@ -25,9 +25,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('/dashboard', [VideoController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
-    Route::get('/videos/stream/{id}', [VideoController::class, 'stream'])->middleware(['auth', 'verified'])->name('videos.stream');
+    Route::get('/videos/stream/{video}', [VideoController::class, 'stream'])->middleware(['auth', 'verified'])->name('videos.stream');
     Route::get('/videos/search', [VideoController::class, 'search'])->middleware(['auth', 'verified'])->name('videos.search');
-    Route::get('/videos/{id}', [VideoController::class, 'show'])->middleware(['auth', 'verified'])->name('videos.show');
+    Route::get('/videos/{video}', [VideoController::class, 'show'])->middleware(['auth', 'verified'])->name('videos.show');
+    Route::post('/videos/{video}', [VideoController::class, 'update'])->middleware(['auth', 'verified'])->name('videos.update');
 });
 
 require __DIR__ . '/auth.php';

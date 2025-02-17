@@ -1,13 +1,10 @@
-// resources/js/Pages/Dashboard.tsx
 import VideoThumb from '@/Components/VideoThumb';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Video } from '@/types/video';
 import { Head } from '@inertiajs/react';
 
 interface DashboardProps {
-    videos: {
-        id: number;
-        title: string;
-    }[];
+    videos: Video[];
 }
 
 export default function Dashboard({ videos }: DashboardProps) {
