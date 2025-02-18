@@ -1,7 +1,9 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Segment } from '@/types/segment';
 import { Video } from '@/types/video';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import Select from 'react-select';
 import { toast } from 'react-toastify';
 
 interface VideoShowProps {
@@ -9,8 +11,10 @@ interface VideoShowProps {
 }
 
 export default function VideoShow({ video }: VideoShowProps) {
+    const { segments }: any = usePage().props;
     const [showTranscription, setShowTranscription] = useState(false);
     const { post, processing } = useForm({ ...video });
+    const { post: postSegment, setData } = useForm({ segment_ids: [] });
 
     const transcription = video.diarization_text ?? video.transcription;
     const previewLength = 50;
@@ -58,19 +62,62 @@ export default function VideoShow({ video }: VideoShowProps) {
             <Head title={video.title} />
 
             <div className="mx-auto">
-                <div>
-                    <video
-                        className="rounded-lg"
-                        controls
-                        poster={video.thumbnail_url}
-                    >
-                        <source
-                            src={route('videos.stream', video.id)}
-                            type="video/mp4"
-                        />
-                        Your browser does not support the video tag.
-                    </video>
+                <div className="flex gap-4">
+                    <div className="relative w-2/3">
+                        <video
+                            className="h-auto w-full rounded-lg"
+                            controls
+                            poster={video.thumbnail_url}
+                        >
+                            <source
+                                src={route('videos.stream', video.id)}
+                                type="video/mp4"
+                            />
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                    <div className="flex flex-1 flex-col rounded-lg bg-gray-700 p-4">
+                        <div className="flex items-center gap-2">
+                            <div>Author:</div>
+                            <div>Fabio</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div>Date:</div>
+                            <div>01/05/2024</div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <div>Segments:</div>
+                            <Select
+                                isMulti
+                                isSearchable
+                                onChange={(selected) => {
+                                    setData({
+                                        data: {
+                                            segment_ids: selected.map(
+                                                (s: any) => s.value,
+                                            ),
+                                        },
+                                    });
+                                    postSegment(
+                                        route(
+                                            'videos.assign-segments',
+                                            video.id,
+                                        ),
+                                    );
+                                }}
+                                options={segments.data.map(
+                                    (segment: Segment) => {
+                                        return {
+                                            value: segment.id,
+                                            label: segment.title,
+                                        };
+                                    },
+                                )}
+                            />
+                        </div>
+                    </div>
                 </div>
+
                 <div className="mt-4 flex justify-end gap-4">
                     {!video.transcription && (
                         <button

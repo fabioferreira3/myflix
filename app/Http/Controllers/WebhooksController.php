@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AIService;
 use App\Services\VideoService;
 use Exception;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ class WebhooksController extends Controller
             if ($params['status'] === 'completed') {
                 $vs = new VideoService();
                 $vs->getAndSaveTranscription($params['video_id'], $params['transcript_id']);
+                //    $vs->getAndSaveAnalysis($params['video_id']);
             }
         } catch (HttpException $e) {
             if ($e->getStatusCode() === 403) {

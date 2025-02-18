@@ -4,12 +4,7 @@ import { FaClock, FaSave } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
 import { useOutsideClick } from '@/hooks/useOutsideClick';
-
-interface Video {
-    id: number;
-    title: string;
-    thumbnail_url: string;
-}
+import { Video } from '@/types/video';
 
 interface VideoThumbProps {
     video: Video;

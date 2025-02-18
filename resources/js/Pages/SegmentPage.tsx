@@ -1,18 +1,20 @@
 import VideoThumb from '@/Components/VideoThumb';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Segment } from '@/types/segment';
 import { Video } from '@/types/video';
 import { Head } from '@inertiajs/react';
 
-interface DashboardProps {
+interface SegmentPageProps {
+    segment: Segment;
     videos: Video[];
 }
 
-export default function Dashboard({ videos }: DashboardProps) {
+export default function SegmentPage({ segment, videos }: SegmentPageProps) {
     return (
         <AuthenticatedLayout
             header={
                 <h2 className="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
-                    Dashboard
+                    {segment.title}
                 </h2>
             }
         >

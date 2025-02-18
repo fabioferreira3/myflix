@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SegmentController;
 use App\Http\Controllers\VideoController;
 use App\Http\Controllers\WebhooksController;
 use Illuminate\Foundation\Application;
@@ -32,7 +33,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/videos/{video}', [VideoController::class, 'show'])->middleware(['auth', 'verified'])->name('videos.show');
     Route::post('/videos/transcript/{video}', [VideoController::class, 'transcript'])->middleware(['auth', 'verified'])->name('videos.transcript');
     Route::post('/videos/ai-analysis/{video}', [VideoController::class, 'aiAnalysis'])->middleware(['auth', 'verified'])->name('videos.ai-analysis');
+    Route::post('/videos/segments/{video}', [VideoController::class, 'assignSegments'])->middleware(['auth', 'verified'])->name('videos.assign-segments');
     Route::post('/videos/{video}', [VideoController::class, 'update'])->middleware(['auth', 'verified'])->name('videos.update');
+
+    Route::get('/segments/{segment}', [SegmentController::class, 'index'])->middleware(['auth', 'verified'])->name('segments.index');
 });
 
 require __DIR__ . '/auth.php';

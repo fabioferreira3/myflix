@@ -39,7 +39,7 @@ class VideoService
         $assembly = $factory->make();
         $assembly->transcribe($url, [
             'video_id' => $videoId,
-            'language' => 'pt',
+            'language_detection' => true,
             'speakers_expected' => 7
         ]);
     }
@@ -79,5 +79,12 @@ class VideoService
         ]);
 
         return $transcription;
+    }
+
+    public function importVideo(array $params)
+    {
+        $video = Video::create($params);
+        $video->refreshThumbnails();
+        $this->transcript($video);
     }
 }

@@ -180,7 +180,7 @@ export default function Authenticated({
                             return (
                                 <NavLink
                                     key={segment.id}
-                                    href={segment.url}
+                                    href={route('segments.index', segment.id)}
                                     active={segment.active}
                                 >
                                     {segment.title}

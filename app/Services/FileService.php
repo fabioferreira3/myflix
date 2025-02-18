@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\FileScan;
 use App\Models\Video;
 use Carbon\Carbon;
 use Exception;
@@ -13,10 +14,23 @@ class FileService
 {
     public function scanDirectory($directory)
     {
+        $vs = new VideoService;
+        $latestScan = FileScan::latest()->first();
         $results = [];
 
-        $directories = Storage::disk('nas')->directories($directory);
-        $files = Storage::disk('nas')->files($directory);
+        if ($latestScan) {
+            $latestScanDate = $latestScan->created_at;
+            $directories = Storage::disk('nas')->directories($directory);
+            $files = Storage::disk('nas')->files($directory);
+
+            $directories = array_filter($directories, function ($dir) use ($latestScanDate) {
+                return Storage::disk('nas')->lastModified($dir) > $latestScanDate->timestamp;
+            });
+
+            $files = array_filter($files, function ($file) use ($latestScanDate) {
+                return Storage::disk('nas')->lastModified($file) > $latestScanDate->timestamp;
+            });
+        }
 
         $filesData = [];
         foreach ($files as $file) {
@@ -34,7 +48,7 @@ class FileService
                 ];
                 $filesData[] = $data;
 
-                Video::create([
+                $vs->importVideo([
                     'title' => $data['basename'],
                     'file_path' => $data['full_path'],
                     'size' => $data['size'],
@@ -53,6 +67,12 @@ class FileService
         }
 
         return $results;
+    }
+
+    public function requestDirectoryScan($directory)
+    {
+        $this->scanDirectory($directory);
+        FileScan::create();
     }
 
     public function syncDate()

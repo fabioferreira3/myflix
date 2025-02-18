@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Segment;
 use App\Models\Video;
 use App\Services\AIService;
 use App\Services\VideoService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
-use ProtoneMedia\LaravelFFMpeg\Support\FFMpeg;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class VideoController extends Controller
@@ -114,6 +113,17 @@ class VideoController extends Controller
         $video->update([
             'metadata' => json_decode($results, true)
         ]);
+
+        return back();
+    }
+
+    public function assignSegments(Video $video, Request $request)
+    {
+        $segmentIds = $request->input('segment_ids');
+        foreach ($segmentIds as $segmentId) {
+            $segment = Segment::find($segmentId);
+            $segment->videos()->save($video);
+        }
 
         return back();
     }
