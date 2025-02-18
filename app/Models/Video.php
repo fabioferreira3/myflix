@@ -13,7 +13,7 @@ class Video extends Model
     use HasUuids, Searchable;
 
     protected $guarded = ['id'];
-    protected $appends = ['url', 'thumbnail_folder_path', 'thumbnail_url'];
+    protected $appends = ['full_path', 'thumbnail_folder_path', 'thumbnail_url'];
     protected $casts = ['metadata' => 'array'];
 
     public function segments()
@@ -27,7 +27,7 @@ class Video extends Model
         );
     }
 
-    public function getUrlAttribute()
+    public function getFullPathAttribute()
     {
         return Storage::disk('nas')->path($this->file_path);
     }

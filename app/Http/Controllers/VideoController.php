@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Video;
+use App\Services\AIService;
+use App\Services\VideoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -39,15 +41,16 @@ class VideoController extends Controller
     public function update(Video $video, Request $request)
     {
         $video->update($request->all());
-        return redirect()->route('dashboard');
+
+        return back();
     }
 
     public function stream(Video $video, Request $request)
     {
-        if (!file_exists($video->url)) {
+        if (!file_exists($video->full_path)) {
             abort(404);
         }
-        $size = filesize($video->url);
+        $size = filesize($video->full_path);
         $start = 0;
         $length = $size;
         $status = 200;
@@ -80,7 +83,7 @@ class VideoController extends Controller
         }
 
         $response = new StreamedResponse(function () use ($video, $start, $length) {
-            $handle = fopen($video->url, 'rb');
+            $handle = fopen($video->full_path, 'rb');
             fseek($handle, $start);
             $buffer = 8192;
             $bytesToRead = $length;
@@ -94,5 +97,24 @@ class VideoController extends Controller
         }, $status, $headers);
 
         return $response;
+    }
+
+    public function transcript(Video $video)
+    {
+        $vs = new VideoService;
+        $vs->transcript($video);
+
+        return back();
+    }
+
+    public function aiAnalysis(Video $video)
+    {
+        $ais = new AIService;
+        $results = $ais->extractAnalysis($video->diarization_text);
+        $video->update([
+            'metadata' => json_decode($results, true)
+        ]);
+
+        return back();
     }
 }

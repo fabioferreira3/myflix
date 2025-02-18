@@ -55,15 +55,15 @@ class FileService
         return $results;
     }
 
-    public function teste()
+    public function syncDate()
     {
         $formatter = new IntlDateFormatter(
-            'pt_BR', // Locale
-            IntlDateFormatter::FULL, // Date format (LONG, MEDIUM, SHORT, FULL)
-            IntlDateFormatter::NONE, // No time component
-            'America/Sao_Paulo', // Timezone
-            IntlDateFormatter::GREGORIAN, // Calendar type
-            "dd 'de' MMMM 'de' yyyy" // Date pattern
+            'pt_BR',
+            IntlDateFormatter::FULL,
+            IntlDateFormatter::NONE,
+            'America/Sao_Paulo',
+            IntlDateFormatter::GREGORIAN,
+            "dd 'de' MMMM 'de' yyyy"
         );
 
         $videos = Video::all();
