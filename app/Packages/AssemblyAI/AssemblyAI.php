@@ -41,7 +41,8 @@ class AssemblyAI
             'filter_profanity' => false,
             'content_safety' => false,
             'speaker_labels' => true,
-            'language_code' => $meta['language'] ?? 'en'
+            'language_detection' => true,
+            //'language_code' => $meta['language'] ?? 'en'
         ];
 
         if ($meta['speakers_expected'] ?? false) {

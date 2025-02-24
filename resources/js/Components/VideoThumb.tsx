@@ -1,6 +1,6 @@
 import { Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
-import { FaClock, FaSave } from 'react-icons/fa';
+import { FaClock, FaFileAlt, FaRobot, FaSave } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
 import { useOutsideClick } from '@/hooks/useOutsideClick';
@@ -36,9 +36,31 @@ export default function VideoThumb({ video }: VideoThumbProps) {
 
     return (
         <div className="flex flex-col overflow-hidden rounded border border-gray-500">
-            <Link href={route('videos.show', video.id)}>
-                <img alt={video.title} src={video.thumbnail_url} />
-            </Link>
+            <div className="relative h-[200px]">
+                <Link
+                    href={route('videos.show', video.id)}
+                    className="absolute inset-0 h-full"
+                >
+                    <img
+                        alt={video.title}
+                        src={video.thumbnail_url}
+                        className="h-full w-full object-cover"
+                    />
+                </Link>
+
+                <div className="text-whit2 absolute right-0 flex gap-2 p-2 text-white">
+                    {video.transcription && (
+                        <div>
+                            <FaFileAlt />
+                        </div>
+                    )}
+                    {video.diarization_text && (
+                        <div>
+                            <FaRobot />
+                        </div>
+                    )}
+                </div>
+            </div>
             <div
                 ref={innerBorderRef}
                 className="flex flex-grow items-center justify-center bg-gray-600 p-2 text-center font-bold text-white"

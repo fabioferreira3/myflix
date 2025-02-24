@@ -14,7 +14,7 @@ export default function VideoShow({ video }: VideoShowProps) {
     const { segments }: any = usePage().props;
     const [showTranscription, setShowTranscription] = useState(false);
     const { post, processing } = useForm({ ...video });
-    const { post: postSegment, setData } = useForm({ segment_ids: [] });
+    const { post: postSegment, setData } = useForm<any>({ segment_ids: [] });
 
     const transcription = video.diarization_text ?? video.transcription;
     const previewLength = 50;
@@ -92,11 +92,9 @@ export default function VideoShow({ video }: VideoShowProps) {
                                 isSearchable
                                 onChange={(selected) => {
                                     setData({
-                                        data: {
-                                            segment_ids: selected.map(
-                                                (s: any) => s.value,
-                                            ),
-                                        },
+                                        segment_ids: selected.map(
+                                            (s: any) => s.value,
+                                        ),
                                     });
                                     postSegment(
                                         route(
@@ -138,7 +136,7 @@ export default function VideoShow({ video }: VideoShowProps) {
                             >
                                 {processing
                                     ? 'Please wait...'
-                                    : 'Analyze Video'}
+                                    : 'Analyze Transcription'}
                             </button>
                         )}
                 </div>
