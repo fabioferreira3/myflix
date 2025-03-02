@@ -98,10 +98,22 @@ class VideoController extends Controller
         return $response;
     }
 
-    public function transcript(Video $video)
+    public function transcript(Request $request, Video $video)
+    {
+        $params = $request->validate([
+            'expected_speakers' => 'required|integer',
+            'language' => 'required|in:en,pt',
+        ]);
+        $vs = new VideoService;
+        $vs->transcript($video, $params);
+
+        return back();
+    }
+
+    public function translate(Video $video)
     {
         $vs = new VideoService;
-        $vs->transcript($video);
+        $vs->translate($video->id);
 
         return back();
     }

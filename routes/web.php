@@ -9,12 +9,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+    return redirect()->route('dashboard');
 });
 
 Route::get('/dashboard', function () {
@@ -33,6 +28,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/videos/{video}', [VideoController::class, 'show'])->middleware(['auth', 'verified'])->name('videos.show');
     Route::post('/videos/transcript/{video}', [VideoController::class, 'transcript'])->middleware(['auth', 'verified'])->name('videos.transcript');
     Route::post('/videos/ai-analysis/{video}', [VideoController::class, 'aiAnalysis'])->middleware(['auth', 'verified'])->name('videos.ai-analysis');
+    Route::post('/videos/translate/{video}', [VideoController::class, 'translate'])->middleware(['auth', 'verified'])->name('videos.translate');
     Route::post('/videos/segments/{video}', [VideoController::class, 'assignSegments'])->middleware(['auth', 'verified'])->name('videos.assign-segments');
     Route::post('/videos/{video}', [VideoController::class, 'update'])->middleware(['auth', 'verified'])->name('videos.update');
 

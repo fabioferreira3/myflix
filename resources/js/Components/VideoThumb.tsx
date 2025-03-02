@@ -1,10 +1,12 @@
 import { Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
+import { BsThreeDotsVertical as DotsIcon } from 'react-icons/bs';
 import { FaClock, FaFileAlt, FaRobot, FaSave } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
 import { useOutsideClick } from '@/hooks/useOutsideClick';
 import { Video } from '@/types/video';
+import Modal from './Modal';
 
 interface VideoThumbProps {
     video: Video;
@@ -12,16 +14,32 @@ interface VideoThumbProps {
 
 export default function VideoThumb({ video }: VideoThumbProps) {
     const [editing, setEditing] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [showTranscribeModal, setShowTranscribeModal] = useState(false);
     const { innerBorderRef } = useOutsideClick(() => setEditing(false));
+    const { innerBorderRef: innerMenuBorderRef } = useOutsideClick(() =>
+        setShowMenu(false),
+    );
     const {
         data: videoData,
         setData: setVideoData,
-        post,
-        processing,
+        post: postUpdate,
+        processing: isUpdating,
     } = useForm({ ...video });
 
+    const {
+        data: transcribeData,
+        setData: setTranscribeData,
+        post: postTranscribe,
+        processing: isTranscribing,
+    } = useForm({
+        expected_speakers: 1,
+        language: 'pt',
+    });
+
     const handleUpdate = () => {
-        post(route('videos.update', video.id), {
+        postUpdate(route('videos.update', video.id), {
             preserveScroll: true,
             preserveUrl: true,
             onSuccess: () => {
@@ -34,8 +52,34 @@ export default function VideoThumb({ video }: VideoThumbProps) {
         });
     };
 
+    const handleAnalyze = () => {
+        postUpdate(route('videos.ai-analysis', video.id), {
+            preserveScroll: true,
+            preserveUrl: true,
+            onSuccess: () => {
+                toast.success('Video analysis completed!');
+            },
+        });
+        toast.info('Analyzing video...');
+        setShowMenu(false);
+    };
+
+    const handleTranscriptSubmit = () => {
+        if (transcribeData.expected_speakers < 1) {
+            return toast.error('Expected speakers must be at least 1');
+        }
+        postTranscribe(route('videos.transcript', video.id), {
+            preserveScroll: true,
+            preserveUrl: true,
+            onSuccess: () => {
+                toast.success('Transcription queued!');
+                setShowTranscribeModal(false);
+            },
+        });
+    };
+
     return (
-        <div className="flex flex-col overflow-hidden rounded border border-gray-500">
+        <div className="flex flex-col rounded border border-gray-500">
             <div className="relative h-[200px]">
                 <Link
                     href={route('videos.show', video.id)}
@@ -54,7 +98,7 @@ export default function VideoThumb({ video }: VideoThumbProps) {
                             <FaFileAlt />
                         </div>
                     )}
-                    {video.diarization_text && (
+                    {video.metadata.title && (
                         <div>
                             <FaRobot />
                         </div>
@@ -66,7 +110,50 @@ export default function VideoThumb({ video }: VideoThumbProps) {
                 className="flex flex-grow items-center justify-center bg-gray-600 p-2 text-center font-bold text-white"
             >
                 {!editing && (
-                    <span onClick={() => setEditing(true)}>{video.title}</span>
+                    <div className="relative flex w-full items-center justify-between gap-2">
+                        <div onClick={() => setEditing(true)}>
+                            {video.title}
+                        </div>
+
+                        <div className="flex h-full">
+                            <button
+                                title="menu"
+                                type="button"
+                                onClick={() => setShowMenu(true)}
+                            >
+                                <DotsIcon />
+                            </button>
+                            {showMenu && (
+                                <div
+                                    ref={innerMenuBorderRef}
+                                    className="absolute right-0 top-8 z-50 flex w-48 flex-col rounded-b border-x border-b border-gray-500 bg-gray-700"
+                                >
+                                    <button
+                                        onClick={() => setShowEditModal(true)}
+                                        className="p-2 text-end hover:bg-gray-500"
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        onClick={() =>
+                                            setShowTranscribeModal(true)
+                                        }
+                                        className="p-2 text-end hover:bg-gray-500"
+                                    >
+                                        Transcribe
+                                    </button>
+                                    {video.transcription && (
+                                        <button
+                                            className="p-2 text-end hover:bg-gray-500"
+                                            onClick={handleAnalyze}
+                                        >
+                                            Analyze with AI
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 )}
                 {editing && (
                     <div className="flex w-full items-center gap-1">
@@ -88,16 +175,90 @@ export default function VideoThumb({ video }: VideoThumbProps) {
                         />
                         <button
                             type="button"
-                            disabled={processing}
+                            disabled={isUpdating}
                             onClick={handleUpdate}
                             className="h-full rounded bg-purple-600 p-2"
                         >
-                            {!processing && <FaSave />}
-                            {processing && <FaClock />}
+                            {!isUpdating && <FaSave />}
+                            {isUpdating && <FaClock />}
                         </button>
                     </div>
                 )}
             </div>
+            {showEditModal && (
+                <Modal
+                    maxWidth="lg"
+                    onClose={() => setShowEditModal(false)}
+                    show
+                    closeable
+                >
+                    <div className="bg-gray-300 p-4">eita</div>
+                </Modal>
+            )}
+            {showTranscribeModal && (
+                <Modal
+                    maxWidth="lg"
+                    onClose={() => setShowTranscribeModal(false)}
+                    show
+                    closeable
+                >
+                    <div className="bg-gray-300 p-4">
+                        <div className="text-xl font-bold">
+                            Transcribe: {video.title}
+                        </div>
+                        <div className="mt-4 flex flex-col gap-2">
+                            <div className="flex items-center gap-4">
+                                <div>Expected speakers:</div>
+                                <input
+                                    defaultValue={
+                                        transcribeData.expected_speakers
+                                    }
+                                    name="expected_speakers"
+                                    title="expected_speakers"
+                                    className="w-12 rounded border-gray-200 px-2 py-1 text-center"
+                                    type="number"
+                                    onBlur={(e) => {
+                                        setTranscribeData({
+                                            ...transcribeData,
+                                            expected_speakers: parseInt(
+                                                e.target.value,
+                                            ),
+                                        });
+                                    }}
+                                />
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div>Language:</div>
+                                <select
+                                    defaultValue={transcribeData.language}
+                                    title="language"
+                                    className="rounded border-gray-200 outline-none"
+                                    name="language"
+                                    onChange={(e: any) => {
+                                        setTranscribeData({
+                                            ...transcribeData,
+                                            language: e.target.value,
+                                        });
+                                    }}
+                                >
+                                    <option value="en">English</option>
+                                    <option value="pt">Portuguese</option>
+                                </select>
+                            </div>
+                            <div>
+                                <button
+                                    disabled={isTranscribing}
+                                    type="button"
+                                    className="rounded bg-gray-600 px-3 py-1 text-white"
+                                    onClick={handleTranscriptSubmit}
+                                >
+                                    {!isTranscribing ? 'Go' : 'Please wait...'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            )}
         </div>
     );
 }

@@ -32,7 +32,8 @@ export default function VideoShow({ video }: VideoShowProps) {
             onSuccess: () => {
                 toast.success('Transcription queued!');
             },
-            onError: () => {
+            onError: (err: any) => {
+                console.log(err);
                 toast.error('Failed to transcribe video');
             },
         });
@@ -47,6 +48,19 @@ export default function VideoShow({ video }: VideoShowProps) {
             },
             onError: () => {
                 toast.error('Failed to analyze video');
+            },
+        });
+    };
+
+    const handleTranslation = () => {
+        post(route('videos.translate', video.id), {
+            preserveScroll: true,
+            preserveUrl: true,
+            onSuccess: () => {
+                toast.success('Translation completed');
+            },
+            onError: () => {
+                toast.error('Failed to translate video');
             },
         });
     };
@@ -117,6 +131,15 @@ export default function VideoShow({ video }: VideoShowProps) {
                 </div>
 
                 <div className="mt-4 flex justify-end gap-4">
+                    {video.language == 'en' && (
+                        <button
+                            disabled={processing}
+                            onClick={handleTranslation}
+                            className="rounded bg-gray-700 px-4 py-1 text-white"
+                        >
+                            Translate
+                        </button>
+                    )}
                     {!video.transcription && (
                         <button
                             disabled={processing}

@@ -25,23 +25,25 @@ class VideoService
 
             return $path;
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to extract audio: ' . $e->getMessage()], 500);
+            throw new \Exception('Failed to extract audio: ' . $e->getMessage());
         }
     }
 
-    public function requestTranscription($videoId, $audioFilePath)
+    public function requestTranscription($videoId, $audioFilePath, array $params)
     {
+        $transcriptionParams = [
+            'video_id' => $videoId,
+            'speakers_expected' => $params['expected_speakers'],
+            'language' => $params['language'],
+        ];
+
         $url = Storage::disk('s3')->temporaryUrl(
             $audioFilePath,
             now()->addMinutes(10)
         );
         $factory = app(AssemblyAIFactoryInterface::class);
         $assembly = $factory->make();
-        $assembly->transcribe($url, [
-            'video_id' => $videoId,
-            'language_detection' => true,
-            'speakers_expected' => 7
-        ]);
+        $assembly->transcribe($url, $transcriptionParams);
     }
 
     public function getAndSaveAnalysis($videoId)
@@ -54,11 +56,36 @@ class VideoService
         ]);
     }
 
-    public function transcript(Video $video)
+    public function translate($videoId)
     {
-        $audioFilePath = $this->extractAudioToMp3($video);
-        $video->update(['audio_file_path' => $audioFilePath]);
-        $this->requestTranscription($video->id, $audioFilePath);
+        $video = Video::findOrFail($videoId);
+        $ais = new AIService;
+        $analysis = $ais->translate($video->transcription);
+        $metadata = $video->metadata ?? [];
+        if (!is_array($metadata)) {
+            $metadata = json_decode($metadata, true) ?? [];
+        }
+        $metadata['translations'][] = [
+            'language' => 'pt',
+            'text' => $analysis,
+        ];
+        $video->update([
+            'metadata' => $metadata
+        ]);
+    }
+
+    public function transcript(Video $video, array $params)
+    {
+        $audioFilePath = $video->audio_file_path;
+        if (!$audioFilePath) {
+            $audioFilePath = $this->extractAudioToMp3($video);
+            $video->update(['audio_file_path' => $audioFilePath]);
+        }
+
+        if ($params['language'] ?? false) {
+            $video->update(['language' => $params['language']]);
+        }
+        $this->requestTranscription($video->id, $audioFilePath, $params);
     }
 
     public function getAndSaveTranscription($videoId, $transcriptionId)
@@ -85,6 +112,5 @@ class VideoService
     {
         $video = Video::create($params);
         $video->refreshThumbnails();
-        $this->transcript($video);
     }
 }

@@ -41,9 +41,14 @@ class AssemblyAI
             'filter_profanity' => false,
             'content_safety' => false,
             'speaker_labels' => true,
-            'language_detection' => true,
-            //'language_code' => $meta['language'] ?? 'en'
+            'speakers_expected' => 1
         ];
+
+        if (!isset($meta['language'])) {
+            $params['language_detection'] = true;
+        } else {
+            $params['language_code'] = $meta['language'];
+        }
 
         if ($meta['speakers_expected'] ?? false) {
             $params['speakers_expected'] = $meta['speakers_expected'];
@@ -114,17 +119,5 @@ class AssemblyAI
             Log::error($e->getMessage());
             throw new GetTranscriptionSubtitlesRequestException($e->getMessage());
         }
-    }
-
-    private function mockResponse()
-    {
-        $faker = Faker::create();
-        $sleepCounter = $faker->numberBetween(2, 6);
-        $wordsCount = $faker->numberBetween(10, 250);
-        $response = $faker->words($wordsCount, true);
-
-        sleep($sleepCounter);
-
-        return $response;
     }
 }
