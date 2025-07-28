@@ -7,9 +7,11 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "achyutn/laravel-hls": "^0.10.1",
         "http-interop/http-factory-guzzle": "^1.2",
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/framework": "^11.31",
+        "laravel/horizon": "^5.30",
         "laravel/sanctum": "^4.0",
         "laravel/scout": "^10.13",
         "laravel/tinker": "^2.9",
@@ -17,6 +19,7 @@
         "meilisearch/meilisearch-php": "^1.12",
         "openai-php/laravel": "^0.10.2",
         "pbmedia/laravel-ffmpeg": "^8.7",
+        "spatie/laravel-backup": "^9.2",
         "tightenco/ziggy": "^2.0"
     },
     "require-dev": {

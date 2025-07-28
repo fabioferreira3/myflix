@@ -1,3 +1,4 @@
+import HLSVideoPlayer from '@/Components/HLSVideoPlayer';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Segment } from '@/types/segment';
 import { Video } from '@/types/video';
@@ -65,6 +66,23 @@ export default function VideoShow({ video }: VideoShowProps) {
         });
     };
 
+    const handleAudioDownload = () => {
+        window.location.href = `/videos/download-audio/${video.id}`;
+    };
+
+    const handleHLSConversion = () => {
+        post(route('videos.convert-hls', video.id), {
+            preserveScroll: true,
+            preserveUrl: true,
+            onSuccess: () => {
+                toast.success('HLS conversion started!');
+            },
+            onError: () => {
+                toast.error('Failed to start HLS conversion');
+            },
+        });
+    };
+
     return (
         <AuthenticatedLayout
             header={
@@ -78,17 +96,12 @@ export default function VideoShow({ video }: VideoShowProps) {
             <div className="mx-auto">
                 <div className="flex gap-4">
                     <div className="relative w-2/3">
-                        <video
+                        <HLSVideoPlayer
+                            videoId={video.id}
+                            hlsPlaylistUrl={video.hls_playlist_url}
+                            posterUrl={video.thumbnail_url}
                             className="h-auto w-full rounded-lg"
-                            controls
-                            poster={video.thumbnail_url}
-                        >
-                            <source
-                                src={route('videos.stream', video.id)}
-                                type="video/mp4"
-                            />
-                            Your browser does not support the video tag.
-                        </video>
+                        />
                     </div>
                     <div className="flex flex-1 flex-col rounded-lg bg-gray-700 p-4">
                         <div className="flex items-center gap-2">
@@ -138,6 +151,23 @@ export default function VideoShow({ video }: VideoShowProps) {
                             className="rounded bg-gray-700 px-4 py-1 text-white"
                         >
                             Translate
+                        </button>
+                    )}
+                    {video.audio_file_path && (
+                        <button
+                            onClick={handleAudioDownload}
+                            className="rounded bg-gray-700 px-4 py-1 text-white"
+                        >
+                            Download Audio
+                        </button>
+                    )}
+                    {!video.hls_playlist_url && (
+                        <button
+                            disabled={processing}
+                            onClick={handleHLSConversion}
+                            className="rounded bg-blue-600 px-4 py-1 text-white disabled:opacity-50"
+                        >
+                            {processing ? 'Please wait...' : 'Convert to HLS'}
                         </button>
                     )}
                     {!video.transcription && (
@@ -233,6 +263,37 @@ export default function VideoShow({ video }: VideoShowProps) {
                                     View Transcription
                                 </button>
                             )}
+                            {video.metadata.translations &&
+                                video.metadata.translations.length > 0 && (
+                                    <div className="flex flex-col gap-4 border-b border-t border-gray-400 p-4">
+                                        <h2 className="text-xl font-bold text-white">
+                                            Translations
+                                        </h2>
+                                        {video.metadata.translations.map(
+                                            (translation: {
+                                                language: string;
+                                                text: string;
+                                            }) => {
+                                                return (
+                                                    <div
+                                                        key={
+                                                            translation.language
+                                                        }
+                                                    >
+                                                        <h3 className="text-white">
+                                                            {
+                                                                translation.language
+                                                            }
+                                                        </h3>
+                                                        <div className="text-white">
+                                                            {translation.text}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            },
+                                        )}
+                                    </div>
+                                )}
                         </>
                     )}
                 </div>

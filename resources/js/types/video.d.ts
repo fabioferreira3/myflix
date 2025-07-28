@@ -7,4 +7,8 @@ export interface Video {
     transcription: string;
     diarization_text: string;
     metadata: any;
+    audio_file_path: string;
+    hls_path: string | null;
+    conversion_progress: number;
+    hls_playlist_url: string | null;
 }

@@ -7,6 +7,8 @@ use App\Models\Video;
 use App\Services\AIService;
 use App\Services\VideoService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -138,5 +140,21 @@ class VideoController extends Controller
         }
 
         return back();
+    }
+
+    public function downloadAudio(Video $video)
+    {
+        $vs = new VideoService;
+        $localPath = $vs->downloadAudio($video);
+
+        return response()->download($localPath, 'audio.mp3')->deleteFileAfterSend(true);
+    }
+
+    public function convertToHLS(Video $video)
+    {
+        // Manually trigger HLS conversion
+        \AchyutN\LaravelHLS\Jobs\QueueHLSConversion::dispatch($video)->onQueue('default');
+
+        return back()->with('message', 'HLS conversion started!');
     }
 }

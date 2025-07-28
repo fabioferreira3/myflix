@@ -3,8 +3,14 @@
 namespace App\Services;
 
 use App\Interfaces\AssemblyAIFactoryInterface;
+use App\Jobs\ExtractAudioFromVideo;
+use App\Jobs\RequestVideoTranscription;
 use App\Models\Video;
+use Exception;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use ProtoneMedia\LaravelFFMpeg\Exporters\EncodingException;
 use ProtoneMedia\LaravelFFMpeg\Support\FFMpeg;
 
 class VideoService
@@ -24,26 +30,13 @@ class VideoService
             Storage::disk('local')->delete($path);
 
             return $path;
+        } catch (EncodingException $exception) {
+            $command = $exception->getCommand();
+            $errorLog = $exception->getErrorOutput();
+            throw new EncodingException('Failed to extract audio: ' . $errorLog, $command);
         } catch (\Exception $e) {
             throw new \Exception('Failed to extract audio: ' . $e->getMessage());
         }
-    }
-
-    public function requestTranscription($videoId, $audioFilePath, array $params)
-    {
-        $transcriptionParams = [
-            'video_id' => $videoId,
-            'speakers_expected' => $params['expected_speakers'],
-            'language' => $params['language'],
-        ];
-
-        $url = Storage::disk('s3')->temporaryUrl(
-            $audioFilePath,
-            now()->addMinutes(10)
-        );
-        $factory = app(AssemblyAIFactoryInterface::class);
-        $assembly = $factory->make();
-        $assembly->transcribe($url, $transcriptionParams);
     }
 
     public function getAndSaveAnalysis($videoId)
@@ -76,16 +69,12 @@ class VideoService
 
     public function transcript(Video $video, array $params)
     {
-        $audioFilePath = $video->audio_file_path;
-        if (!$audioFilePath) {
-            $audioFilePath = $this->extractAudioToMp3($video);
-            $video->update(['audio_file_path' => $audioFilePath]);
-        }
-
-        if ($params['language'] ?? false) {
-            $video->update(['language' => $params['language']]);
-        }
-        $this->requestTranscription($video->id, $audioFilePath, $params);
+        Bus::chain([
+            new ExtractAudioFromVideo($video, $params),
+            new RequestVideoTranscription($video, $params),
+        ])->catch(function (Exception $e) {
+            throw new Exception('Failed to transcribe video: ' . $e->getMessage());
+        })->dispatch();
     }
 
     public function getAndSaveTranscription($videoId, $transcriptionId)
@@ -112,5 +101,29 @@ class VideoService
     {
         $video = Video::create($params);
         $video->refreshThumbnails();
+    }
+
+    public function downloadAudio(Video $video)
+    {
+        try {
+            $url = $video->getAudioPublicUrl();
+            $fileName = $video->id . '.mp3';
+            $response = Http::get($url);
+
+            if ($response->failed()) {
+                abort(500, 'Failed to download the file.');
+            }
+            Storage::disk('local')->put("audios/{$fileName}", $response->body());
+
+            return storage_path("app/public/local/audios/{$fileName}");
+        } catch (Exception $e) {
+            throw new Exception('Failed to download audio: ' . $e->getMessage());
+        }
+    }
+
+    public function convertToHLS(Video $video)
+    {
+        // Trigger HLS conversion
+        \AchyutN\LaravelHLS\Jobs\QueueHLSConversion::dispatch($video)->onQueue(config('hls.queue_name', 'default'));
     }
 }

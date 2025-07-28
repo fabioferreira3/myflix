@@ -30,6 +30,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/videos/ai-analysis/{video}', [VideoController::class, 'aiAnalysis'])->middleware(['auth', 'verified'])->name('videos.ai-analysis');
     Route::post('/videos/translate/{video}', [VideoController::class, 'translate'])->middleware(['auth', 'verified'])->name('videos.translate');
     Route::post('/videos/segments/{video}', [VideoController::class, 'assignSegments'])->middleware(['auth', 'verified'])->name('videos.assign-segments');
+    Route::get('/videos/download-audio/{video}', [VideoController::class, 'downloadAudio'])->middleware(['auth', 'verified'])->name('videos.download-audio');
+    Route::post('/videos/convert-hls/{video}', [VideoController::class, 'convertToHLS'])->middleware(['auth', 'verified'])->name('videos.convert-hls');
     Route::post('/videos/{video}', [VideoController::class, 'update'])->middleware(['auth', 'verified'])->name('videos.update');
 
     Route::get('/segments/{segment}', [SegmentController::class, 'index'])->middleware(['auth', 'verified'])->name('segments.index');

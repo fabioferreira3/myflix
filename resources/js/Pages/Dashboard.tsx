@@ -8,6 +8,9 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ videos }: DashboardProps) {
+    // get query params from url
+    const urlParams = new URLSearchParams(window.location.search);
+    const query = urlParams.get('query') || '';
     return (
         <AuthenticatedLayout
             header={
@@ -28,6 +31,7 @@ export default function Dashboard({ videos }: DashboardProps) {
                     >
                         <input
                             type="text"
+                            defaultValue={query}
                             name="query"
                             placeholder="Search..."
                             className="w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring focus:ring-blue-500 dark:border-gray-600"
