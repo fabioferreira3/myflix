@@ -67,7 +67,12 @@ export default function VideoShow({ video }: VideoShowProps) {
     };
 
     const handleAudioDownload = () => {
-        window.location.href = `/videos/download-audio/${video.id}`;
+        const baronSessionId = (window as any).baronSessionId;
+        let url = `/videos/download-audio/${video.id}`;
+        if (baronSessionId) {
+            url += `?baron_session_id=${baronSessionId}`;
+        }
+        window.location.href = url;
     };
 
     const handleHLSConversion = () => {

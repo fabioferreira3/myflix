@@ -31,12 +31,20 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        // Get authenticated user (from Baron session or regular auth)
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'segments' => SegmentResource::collection(Segment::all()),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                ] : null,
             ],
+            'baronSessionId' => $request->input('baron_session_id'),
         ];
     }
 }

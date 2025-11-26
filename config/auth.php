@@ -112,4 +112,18 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Baron Session Configuration
+    |--------------------------------------------------------------------------
+    |
+    | These settings configure how MyFlix reads authentication data from
+    | Baron's session cookies when running as an iframe inside Baron.
+    |
+    */
+
+    'baron_session_cookie' => 'baron_session',
+    'baron_session_connection' => 'baron',
+    'baron_session_table' => 'sessions',
+
 ];

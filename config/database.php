@@ -42,6 +42,17 @@ return [
             'synchronous' => null,
         ],
 
+        'baron' => [
+            'driver' => 'sqlite',
+            'url' => env('BARON_DB_URL'),
+            'database' => env('BARON_DB_DATABASE', '/baron-database/database.sqlite'),
+            'prefix' => '',
+            'foreign_key_constraints' => env('BARON_DB_FOREIGN_KEYS', true),
+            'busy_timeout' => null,
+            'journal_mode' => null,
+            'synchronous' => null,
+        ],
+
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),
@@ -147,7 +158,7 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_') . '_database_'),
         ],
 
         'default' => [

@@ -72,18 +72,90 @@ class Video extends Model
         $files = Storage::disk('local')->files($this->thumbnail_folder_path);
         Storage::disk('local')->delete($files);
 
-        $mediaOpener = FFMpeg::fromDisk('nas')->open($this->file_path);
-        foreach (
-            [
-                3,
-                7,
-                14
-            ] as $key => $seconds
-        ) {
-            $mediaOpener = $mediaOpener->getFrameFromSeconds($seconds)
-                ->export()
-                ->toDisk('local')
-                ->save($this->thumbnail_folder_path . "/{$key}.png");
+        // Store original umask and set a permissive one
+        $originalUmask = umask(0022);
+
+        try {
+            // Ensure directory exists and has correct permissions before creating thumbnails
+            $directoryPath = Storage::disk('local')->path($this->thumbnail_folder_path);
+            if (!is_dir($directoryPath)) {
+                Storage::disk('local')->makeDirectory($this->thumbnail_folder_path);
+            }
+
+            // Aggressively fix directory permissions and ownership
+            $this->fixDirectoryPermissions($directoryPath);
+
+            $mediaOpener = FFMpeg::fromDisk('nas')->open($this->file_path);
+            foreach (
+                [
+                    3,
+                    7,
+                    14
+                ] as $key => $seconds
+            ) {
+                $mediaOpener = $mediaOpener->getFrameFromSeconds($seconds)
+                    ->export()
+                    ->toDisk('local')
+                    ->save($this->thumbnail_folder_path . "/{$key}.png");
+
+                // Immediately fix permissions after each file creation
+                $thumbnailPath = Storage::disk('local')->path($this->thumbnail_folder_path . "/{$key}.png");
+                if (file_exists($thumbnailPath)) {
+                    chmod($thumbnailPath, 0644);
+                    $this->fixFileOwnership($thumbnailPath);
+                }
+
+                // Re-fix directory permissions after each file (FFMpeg might change them)
+                $this->fixDirectoryPermissions($directoryPath);
+            }
+        } finally {
+            // Restore original umask
+            umask($originalUmask);
+
+            // Final comprehensive permission fix for the entire thumbnail directory
+            $this->recursivelyFixPermissions($directoryPath);
+        }
+    }
+
+    private function fixDirectoryPermissions($directoryPath)
+    {
+        if (is_dir($directoryPath)) {
+            chmod($directoryPath, 0755);
+            $this->fixFileOwnership($directoryPath);
+        }
+    }
+
+    private function fixFileOwnership($filePath)
+    {
+        $webUser = get_current_user();
+        if (function_exists('posix_getpwnam') && posix_getpwnam($webUser)) {
+            $userInfo = posix_getpwnam($webUser);
+            @chown($filePath, $userInfo['uid']);
+            @chgrp($filePath, $userInfo['gid']);
+        }
+    }
+
+    private function recursivelyFixPermissions($directoryPath)
+    {
+        // Use PHP's recursive iterator to fix all files and directories
+        if (is_dir($directoryPath)) {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($directoryPath, \RecursiveDirectoryIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::SELF_FIRST
+            );
+
+            foreach ($iterator as $item) {
+                if ($item->isDir()) {
+                    @chmod($item->getPathname(), 0755);
+                } else {
+                    @chmod($item->getPathname(), 0644);
+                }
+                $this->fixFileOwnership($item->getPathname());
+            }
+
+            // Fix the root directory itself
+            @chmod($directoryPath, 0755);
+            $this->fixFileOwnership($directoryPath);
         }
     }
 }

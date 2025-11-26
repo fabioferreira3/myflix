@@ -21,6 +21,18 @@ export default function HLSVideoPlayer({
         const video = videoRef.current;
         if (!video) return;
 
+        // Get baron session ID from global window object
+        const baronSessionId = (window as any).baronSessionId;
+
+        // Helper function to append baron_session_id to URLs
+        const appendSessionId = (url: string): string => {
+            if (baronSessionId && !url.includes('baron_session_id=')) {
+                const separator = url.includes('?') ? '&' : '?';
+                return `${url}${separator}baron_session_id=${baronSessionId}`;
+            }
+            return url;
+        };
+
         // If HLS is available and supported
         if (hlsPlaylistUrl && Hls.isSupported()) {
             const hls = new Hls({
@@ -28,7 +40,7 @@ export default function HLSVideoPlayer({
             });
 
             hlsRef.current = hls;
-            hls.loadSource(hlsPlaylistUrl);
+            hls.loadSource(appendSessionId(hlsPlaylistUrl));
             hls.attachMedia(video);
 
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -67,11 +79,12 @@ export default function HLSVideoPlayer({
             hlsPlaylistUrl &&
             video.canPlayType('application/vnd.apple.mpegurl')
         ) {
-            video.src = hlsPlaylistUrl;
+            video.src = appendSessionId(hlsPlaylistUrl);
         }
         // If no HLS available, fallback to regular MP4 streaming
         else {
-            video.src = route('videos.stream', videoId);
+            const streamUrl = route('videos.stream', videoId);
+            video.src = appendSessionId(streamUrl);
         }
 
         return () => {
@@ -82,6 +95,17 @@ export default function HLSVideoPlayer({
         };
     }, [hlsPlaylistUrl, videoId]);
 
+    // Get baron session ID for fallback source
+    const baronSessionId = (window as any).baronSessionId;
+    const fallbackSrc = (() => {
+        const streamUrl = route('videos.stream', videoId);
+        if (baronSessionId && !streamUrl.includes('baron_session_id=')) {
+            const separator = streamUrl.includes('?') ? '&' : '?';
+            return `${streamUrl}${separator}baron_session_id=${baronSessionId}`;
+        }
+        return streamUrl;
+    })();
+
     return (
         <video
             ref={videoRef}
@@ -91,12 +115,7 @@ export default function HLSVideoPlayer({
             preload="metadata"
         >
             {/* Fallback source for browsers without HLS support */}
-            {!hlsPlaylistUrl && (
-                <source
-                    src={route('videos.stream', videoId)}
-                    type="video/mp4"
-                />
-            )}
+            {!hlsPlaylistUrl && <source src={fallbackSrc} type="video/mp4" />}
             Your browser does not support the video tag.
         </video>
     );
