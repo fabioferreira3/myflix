@@ -46,6 +46,14 @@ return [
             'report' => false,
         ],
 
+        'nas_hls' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/nas/jw-hls'),
+            'serve' => true,
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

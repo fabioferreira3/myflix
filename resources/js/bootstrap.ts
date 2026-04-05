@@ -3,53 +3,96 @@ window.axios = axios;
 
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-// Get Baron session ID from URL and add it to all requests
-const urlParams = new URLSearchParams(window.location.search);
-const baronSessionId = urlParams.get('baron_session_id');
-
-if (baronSessionId) {
-    // Store it globally for access
-    (window as any).baronSessionId = baronSessionId;
-
-    // Add to all axios requests
-    window.axios.interceptors.request.use((config) => {
-        // Add baron_session_id to all requests
-        if (!config.params) {
-            config.params = {};
-        }
-        config.params.baron_session_id = baronSessionId;
-        return config;
-    });
-
-    // Intercept fetch requests (used by Inertia)
-    const originalFetch = window.fetch;
-    window.fetch = function (...args: any[]) {
-        let [resource, config] = args;
-
-        console.log('Fetch intercepted:', resource);
-
-        if (typeof resource === 'string') {
-            const url = new URL(resource, window.location.origin);
-            if (!url.searchParams.has('baron_session_id')) {
-                url.searchParams.set('baron_session_id', baronSessionId);
-                console.log('Added baron_session_id to URL:', url.toString());
-            }
-            resource = url.toString();
-        } else if (resource instanceof Request) {
-            // Handle Request objects
-            const url = new URL(resource.url);
-            if (!url.searchParams.has('baron_session_id')) {
-                url.searchParams.set('baron_session_id', baronSessionId);
-                console.log(
-                    'Added baron_session_id to Request:',
-                    url.toString(),
-                );
-                resource = new Request(url.toString(), resource);
-            }
-        }
-
-        return originalFetch(resource, config);
-    };
-
-    console.log('Baron session ID interceptor installed:', baronSessionId);
+// Configure CSRF token for axios requests
+// Use X-XSRF-TOKEN header which Laravel reads from XSRF-TOKEN cookie
+const token = document.head.querySelector(
+    'meta[name="csrf-token"]',
+) as HTMLMetaElement;
+if (token) {
+    // Set both headers for compatibility
+    window.axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
+    window.axios.defaults.headers.common['X-XSRF-TOKEN'] = token.content;
+    console.log('✓ CSRF token configured for axios');
+} else {
+    console.error('✗ CSRF token not found in meta tag');
 }
+
+// Intercept all fetch requests (used by Inertia) to add CSRF token
+const originalFetch = window.fetch;
+window.fetch = function (...args: any[]) {
+    let [resource, config] = args;
+
+    console.log('📡 Fetch intercepted:', resource);
+
+    // Handle Request objects differently
+    if (resource instanceof Request) {
+        // Clone the request to modify headers
+        const headers = new Headers(resource.headers);
+
+        // Add CSRF token - Laravel accepts both X-CSRF-TOKEN and X-XSRF-TOKEN
+        const csrfToken = document.head.querySelector(
+            'meta[name="csrf-token"]',
+        ) as HTMLMetaElement;
+        if (
+            csrfToken &&
+            !headers.has('X-CSRF-TOKEN') &&
+            !headers.has('X-XSRF-TOKEN')
+        ) {
+            // Set both headers for maximum compatibility
+            headers.set('X-CSRF-TOKEN', csrfToken.content);
+            headers.set('X-XSRF-TOKEN', csrfToken.content);
+            console.log('✓ Added CSRF tokens to Request object');
+        } else if (!csrfToken) {
+            console.error('✗ CSRF token not found when intercepting Request');
+        } else {
+            console.log('ℹ️ CSRF token already present in Request');
+        }
+
+        // Create new request with modified headers
+        resource = new Request(resource.url, {
+            method: resource.method,
+            headers: headers,
+            body: resource.body,
+            mode: resource.mode,
+            credentials: resource.credentials,
+            cache: resource.cache,
+            redirect: resource.redirect,
+            referrer: resource.referrer,
+            integrity: resource.integrity,
+        });
+
+        return originalFetch(resource);
+    }
+
+    // Handle string URLs with config object
+    if (!config) {
+        config = {};
+    }
+    if (!config.headers) {
+        config.headers = {};
+    }
+
+    // Add CSRF token to headers - set both for compatibility
+    const csrfToken = document.head.querySelector(
+        'meta[name="csrf-token"]',
+    ) as HTMLMetaElement;
+    if (csrfToken) {
+        if (
+            !config.headers['X-CSRF-TOKEN'] &&
+            !config.headers['x-csrf-token']
+        ) {
+            config.headers['X-CSRF-TOKEN'] = csrfToken.content;
+        }
+        if (
+            !config.headers['X-XSRF-TOKEN'] &&
+            !config.headers['x-xsrf-token']
+        ) {
+            config.headers['X-XSRF-TOKEN'] = csrfToken.content;
+        }
+        console.log('✓ Added CSRF tokens to fetch config');
+    } else {
+        console.error('✗ CSRF token not found when intercepting fetch');
+    }
+
+    return originalFetch(resource, config);
+};

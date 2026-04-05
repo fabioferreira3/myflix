@@ -31,7 +31,6 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        // Get authenticated user (from Baron session or regular auth)
         $user = $request->user();
 
         return [
@@ -44,7 +43,6 @@ class HandleInertiaRequests extends Middleware
                     'email' => $user->email,
                 ] : null,
             ],
-            'baronSessionId' => $request->input('baron_session_id'),
         ];
     }
 }

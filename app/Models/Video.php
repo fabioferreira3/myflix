@@ -14,6 +14,14 @@ class Video extends Model
     use HasUuids, Searchable, ConvertsToHLS;
 
     protected $guarded = ['id'];
+
+    /**
+     * Disable automatic HLS conversion on model create/update.
+     * HLS conversion is triggered manually via VideoController::convertToHLS.
+     */
+    public static function bootConvertsToHLS(): void
+    {
+    }
     protected $appends = ['full_path', 'thumbnail_folder_path', 'thumbnail_url', 'hls_playlist_url'];
     protected $casts = ['metadata' => 'array'];
 

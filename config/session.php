@@ -199,7 +199,7 @@ return [
     |
     */
 
-    'same_site' => null,  // Use null for cross-origin iframes in development
+    'same_site' => 'lax',  // Standard same-site policy
 
     /*
     |--------------------------------------------------------------------------
@@ -212,6 +212,6 @@ return [
     |
     */
 
-    'partitioned' => env('SESSION_PARTITIONED_COOKIE', true),
+    'partitioned' => env('SESSION_PARTITIONED_COOKIE', false),
 
 ];

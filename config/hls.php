@@ -109,7 +109,7 @@ return [
      *
      * Default: 'local'
      */
-    'hls_disk' => 'nas',
+    'hls_disk' => 'nas_hls',
 
     /**
      * The disk where the encryption secrets are stored.
@@ -118,7 +118,7 @@ return [
      *
      * Default: 'local'
      */
-    'secrets_disk' => 'nas',
+    'secrets_disk' => 'nas_hls',
 
     /**
      * The path where the HLS output files will be stored.

@@ -17,7 +17,7 @@ class VideoController extends Controller
 {
     public function index()
     {
-        $videos = Video::orderBy('date', 'DESC')->get();
+        $videos = Video::orderBy('date', 'DESC')->paginate(24);
         return Inertia::render('Dashboard', [
             'videos' => $videos,
         ]);
@@ -33,7 +33,7 @@ class VideoController extends Controller
     public function search(Request $request)
     {
         $videos = Video::search($request->input('query'))
-            ->get();
+            ->paginate(24);
 
         return Inertia::render('Dashboard', [
             'videos' => $videos,
@@ -104,11 +104,13 @@ class VideoController extends Controller
     public function transcript(Request $request, Video $video)
     {
         $params = $request->validate([
-            'expected_speakers' => 'required|integer',
-            'language' => 'required|in:en,pt',
+            'language' => 'sometimes|in:en,pt',
         ]);
+
+        $language = $params['language'] ?? 'pt';
+
         $vs = new VideoService;
-        $vs->transcript($video, $params);
+        $vs->transcript($video, $language);
 
         return back();
     }
@@ -124,7 +126,7 @@ class VideoController extends Controller
     public function aiAnalysis(Video $video)
     {
         $ais = new AIService;
-        $results = $ais->extractAnalysis($video->diarization_text);
+        $results = $ais->extractAnalysis($video->diarization_text ?? $video->transcription);
         $video->update([
             'metadata' => json_decode($results, true)
         ]);
@@ -157,5 +159,47 @@ class VideoController extends Controller
         \AchyutN\LaravelHLS\Jobs\QueueHLSConversion::dispatch($video)->onQueue('default');
 
         return back()->with('message', 'HLS conversion started!');
+    }
+
+    public function morningWorship(Request $request)
+    {
+        $query = $request->input('query', '');
+
+        $videos = Video::where('file_path', 'like', 'jw/morning-worship/%')
+            ->when($query, function ($q) use ($query) {
+                $q->where(function ($q) use ($query) {
+                    $q->where('title', 'like', "%{$query}%")
+                      ->orWhere('description', 'like', "%{$query}%");
+                });
+            })
+            ->orderBy('created_at', 'DESC')
+            ->paginate(24)
+            ->withQueryString();
+
+        return Inertia::render('MorningWorship', [
+            'videos' => $videos,
+            'query'  => $query,
+        ]);
+    }
+
+    public function morningWorshipBroadcasting(Request $request)
+    {
+        $query = $request->input('query', '');
+
+        $videos = Video::where('file_path', 'like', 'jw/morning-worship-broadcasting/%')
+            ->when($query, function ($q) use ($query) {
+                $q->where(function ($q) use ($query) {
+                    $q->where('title', 'like', "%{$query}%")
+                      ->orWhere('description', 'like', "%{$query}%");
+                });
+            })
+            ->orderBy('created_at', 'DESC')
+            ->paginate(24)
+            ->withQueryString();
+
+        return Inertia::render('MorningWorshipBroadcasting', [
+            'videos' => $videos,
+            'query'  => $query,
+        ]);
     }
 }

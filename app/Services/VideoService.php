@@ -3,11 +3,9 @@
 namespace App\Services;
 
 use App\Interfaces\AssemblyAIFactoryInterface;
-use App\Jobs\ExtractAudioFromVideo;
-use App\Jobs\RequestVideoTranscription;
+use App\Jobs\RequestWhisperTranscription;
 use App\Models\Video;
 use Exception;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use ProtoneMedia\LaravelFFMpeg\Exporters\EncodingException;
@@ -67,14 +65,9 @@ class VideoService
         ]);
     }
 
-    public function transcript(Video $video, array $params)
+    public function transcript(Video $video, string $language = 'pt')
     {
-        Bus::chain([
-            new ExtractAudioFromVideo($video, $params),
-            new RequestVideoTranscription($video, $params),
-        ])->catch(function (Exception $e) {
-            throw new Exception('Failed to transcribe video: ' . $e->getMessage());
-        })->dispatch();
+        RequestWhisperTranscription::dispatch($video, $language);
     }
 
     public function getAndSaveTranscription($videoId, $transcriptionId)
@@ -99,8 +92,14 @@ class VideoService
 
     public function importVideo(array $params)
     {
-        $video = Video::create($params);
-        $video->refreshThumbnails();
+        $video = Video::firstOrCreate(
+            ['file_path' => $params['file_path']],
+            $params,
+        );
+
+        if ($video->wasRecentlyCreated) {
+            $video->refreshThumbnails();
+        }
     }
 
     public function downloadAudio(Video $video)

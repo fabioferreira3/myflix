@@ -2,6 +2,7 @@ import HLSVideoPlayer from '@/Components/HLSVideoPlayer';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Segment } from '@/types/segment';
 import { Video } from '@/types/video';
+import { checkWhisperHealth } from '@/utils/whisper';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import Select from 'react-select';
@@ -14,7 +15,7 @@ interface VideoShowProps {
 export default function VideoShow({ video }: VideoShowProps) {
     const { segments }: any = usePage().props;
     const [showTranscription, setShowTranscription] = useState(false);
-    const { post, processing } = useForm({ ...video });
+    const { post, processing } = useForm({ ...video, language: video.language ?? 'pt' });
     const { post: postSegment, setData } = useForm<any>({ segment_ids: [] });
 
     const transcription = video.diarization_text ?? video.transcription;
@@ -26,7 +27,12 @@ export default function VideoShow({ video }: VideoShowProps) {
         return words.slice(0, previewLength).join(' ') + '...';
     };
 
-    const handleTranscription = () => {
+    const handleTranscription = async () => {
+        const isHealthy = await checkWhisperHealth();
+        if (!isHealthy) {
+            toast.error('Whisper service is unavailable. Please try again later.');
+            return;
+        }
         post(route('videos.transcript', video.id), {
             preserveScroll: true,
             preserveUrl: true,

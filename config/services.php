@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'whisper' => [
+        'url' => env('WHISPER_API_URL', 'http://localhost:5000'),
+        'health_url' => env('WHISPER_API_URL_HEALTH'),
+    ],
+
 ];
