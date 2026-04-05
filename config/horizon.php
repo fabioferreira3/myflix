@@ -196,7 +196,7 @@ return [
         'supervisor-transcription' => [
             'connection' => 'redis',
             'queue' => ['transcription'],
-            'balance' => 'false',
+            'balance' => false,
             'maxProcesses' => 1,
             'maxTime' => 0,
             'maxJobs' => 0,

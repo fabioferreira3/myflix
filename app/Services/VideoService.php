@@ -37,16 +37,6 @@ class VideoService
         }
     }
 
-    public function getAndSaveAnalysis($videoId)
-    {
-        $video = Video::findOrFail($videoId);
-        $ais = new AIService;
-        $analysis = $ais->extractAnalysis($video->diarization_text);
-        $video->update([
-            'metadata' => json_decode($analysis, true)
-        ]);
-    }
-
     public function translate($videoId)
     {
         $video = Video::findOrFail($videoId);

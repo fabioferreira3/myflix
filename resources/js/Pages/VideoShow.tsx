@@ -2,7 +2,6 @@ import HLSVideoPlayer from '@/Components/HLSVideoPlayer';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Segment } from '@/types/segment';
 import { Video } from '@/types/video';
-import { checkWhisperHealth } from '@/utils/whisper';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import Select from 'react-select';
@@ -27,12 +26,7 @@ export default function VideoShow({ video }: VideoShowProps) {
         return words.slice(0, previewLength).join(' ') + '...';
     };
 
-    const handleTranscription = async () => {
-        const isHealthy = await checkWhisperHealth();
-        if (!isHealthy) {
-            toast.error('Whisper service is unavailable. Please try again later.');
-            return;
-        }
+    const handleTranscription = () => {
         post(route('videos.transcript', video.id), {
             preserveScroll: true,
             preserveUrl: true,
@@ -190,19 +184,15 @@ export default function VideoShow({ video }: VideoShowProps) {
                             {processing ? 'Please wait...' : 'Transcribe Video'}
                         </button>
                     )}
-                    {video.diarization_text &&
-                        (!video.metadata ||
-                            Object.keys(video.metadata).length === 0) && (
-                            <button
-                                disabled={processing}
-                                onClick={handleAIAnalysis}
-                                className="rounded bg-gray-600 px-4 py-1 text-white"
-                            >
-                                {processing
-                                    ? 'Please wait...'
-                                    : 'Analyze Transcription'}
-                            </button>
-                        )}
+                    {(video.diarization_text || video.transcription) && (
+                        <button
+                            disabled={processing}
+                            onClick={handleAIAnalysis}
+                            className="rounded bg-gray-600 px-4 py-1 text-white disabled:opacity-50"
+                        >
+                            {processing ? 'Please wait...' : 'Analyze with AI'}
+                        </button>
+                    )}
                 </div>
                 <div className="flex flex-col gap-6 px-4 py-6">
                     {video.metadata && video.metadata.title && (

@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Segment;
 use App\Models\Video;
-use App\Services\AIService;
+use App\Jobs\AnalyzeVideoWithAI;
 use App\Services\VideoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -125,11 +125,7 @@ class VideoController extends Controller
 
     public function aiAnalysis(Video $video)
     {
-        $ais = new AIService;
-        $results = $ais->extractAnalysis($video->diarization_text ?? $video->transcription);
-        $video->update([
-            'metadata' => json_decode($results, true)
-        ]);
+        AnalyzeVideoWithAI::dispatch($video);
 
         return back();
     }

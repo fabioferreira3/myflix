@@ -6,7 +6,6 @@ import { toast } from 'react-toastify';
 
 import { useOutsideClick } from '@/hooks/useOutsideClick';
 import { Video } from '@/types/video';
-import { checkWhisperHealth } from '@/utils/whisper';
 import Modal from './Modal';
 
 interface VideoThumbProps {
@@ -65,14 +64,9 @@ export default function VideoThumb({ video }: VideoThumbProps) {
         setShowMenu(false);
     };
 
-    const handleTranscriptSubmit = async () => {
+    const handleTranscriptSubmit = () => {
         if (transcribeData.expected_speakers < 1) {
             return toast.error('Expected speakers must be at least 1');
-        }
-        const isHealthy = await checkWhisperHealth();
-        if (!isHealthy) {
-            toast.error('Whisper service is unavailable. Please try again later.');
-            return;
         }
         postTranscribe(route('videos.transcript', video.id), {
             preserveScroll: true,
@@ -132,7 +126,7 @@ export default function VideoThumb({ video }: VideoThumbProps) {
                             {showMenu && (
                                 <div
                                     ref={innerMenuBorderRef}
-                                    className="absolute right-0 top-8 z-50 flex w-48 flex-col rounded-b border-x border-b border-gray-500 bg-gray-700"
+                                    className="absolute bottom-full right-0 z-50 flex w-48 flex-col rounded-t border-x border-t border-b border-gray-500 bg-gray-700"
                                 >
                                     <button
                                         onClick={() => setShowEditModal(true)}
