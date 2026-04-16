@@ -47,6 +47,23 @@ class VideoController extends Controller
         return back();
     }
 
+    public function updateMetadata(Video $video, Request $request)
+    {
+        $validated = $request->validate([
+            'author'          => 'nullable|string|max:255',
+            'date'            => 'nullable|date',
+            'participants'    => 'nullable|array',
+            'participants.*'  => 'string|max:255',
+            'tags'            => 'nullable|array',
+            'tags.*'          => 'string|max:255',
+        ]);
+
+        $existing = $video->metadata ?? [];
+        $video->update(['metadata' => array_merge($existing, $validated)]);
+
+        return back();
+    }
+
     public function stream(Video $video, Request $request)
     {
         if (!file_exists($video->full_path)) {
@@ -164,8 +181,12 @@ class VideoController extends Controller
         $videos = Video::where('file_path', 'like', 'jw/morning-worship/%')
             ->when($query, function ($q) use ($query) {
                 $q->where(function ($q) use ($query) {
-                    $q->where('title', 'like', "%{$query}%")
-                      ->orWhere('description', 'like', "%{$query}%");
+                    $q->where('title', 'ilike', "%{$query}%")
+                      ->orWhere('description', 'ilike', "%{$query}%")
+                      ->orWhere('transcription', 'ilike', "%{$query}%")
+                      ->orWhereJsonContains('metadata->participants', $query)
+                      ->orWhereJsonContains('metadata->tags', $query)
+                      ->orWhere('metadata->author', 'ilike', "%{$query}%");
                 });
             })
             ->orderBy('created_at', 'DESC')
@@ -185,8 +206,12 @@ class VideoController extends Controller
         $videos = Video::where('file_path', 'like', 'jw/morning-worship-broadcasting/%')
             ->when($query, function ($q) use ($query) {
                 $q->where(function ($q) use ($query) {
-                    $q->where('title', 'like', "%{$query}%")
-                      ->orWhere('description', 'like', "%{$query}%");
+                    $q->where('title', 'ilike', "%{$query}%")
+                      ->orWhere('description', 'ilike', "%{$query}%")
+                      ->orWhere('transcription', 'ilike', "%{$query}%")
+                      ->orWhereJsonContains('metadata->participants', $query)
+                      ->orWhereJsonContains('metadata->tags', $query)
+                      ->orWhere('metadata->author', 'ilike', "%{$query}%");
                 });
             })
             ->orderBy('created_at', 'DESC')

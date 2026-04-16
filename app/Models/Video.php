@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Scout\Searchable;
+use Normalizer;
 use ProtoneMedia\LaravelFFMpeg\Support\FFMpeg;
 
 class Video extends Model
@@ -25,6 +26,24 @@ class Video extends Model
     protected $appends = ['full_path', 'thumbnail_folder_path', 'thumbnail_url', 'hls_playlist_url'];
     protected $casts = ['metadata' => 'array'];
 
+    public function toSearchableArray(): array
+    {
+        $meta = $this->metadata ?? [];
+
+        return [
+            'id'             => $this->id,
+            'title'          => $this->title,
+            'description'    => $this->description ?? null,
+            'transcription'  => $this->transcription ?? null,
+            'file_path'      => $this->file_path,
+            // top-level metadata fields for direct Meilisearch attribute filtering/search
+            'author'         => $meta['author'] ?? null,
+            'date'           => $meta['date'] ?? null,
+            'participants'   => $meta['participants'] ?? [],
+            'tags'           => $meta['tags'] ?? [],
+        ];
+    }
+
     public function segments()
     {
         return $this->morphToMany(
@@ -36,9 +55,26 @@ class Video extends Model
         );
     }
 
+    /**
+     * Normalize file_path to NFC Unicode to match the filesystem encoding.
+     * The DB may store decomposed (NFD) characters (e.g. c+̧ instead of ç),
+     * which won't resolve against NFC-encoded filenames on the NAS.
+     */
+    public function getNormalizedFilePath(): string
+    {
+        return Normalizer::normalize($this->file_path, Normalizer::FORM_C);
+    }
+
+    public function getVideoPath(): ?string
+    {
+        $path = $this->{$this->getVideoColumn()} ?? null;
+
+        return $path ? Normalizer::normalize($path, Normalizer::FORM_C) : null;
+    }
+
     public function getFullPathAttribute()
     {
-        return Storage::disk('nas')->path($this->file_path);
+        return Storage::disk('nas')->path($this->getNormalizedFilePath());
     }
 
     public function getThumbnailFolderPathAttribute()
@@ -93,7 +129,7 @@ class Video extends Model
             // Aggressively fix directory permissions and ownership
             $this->fixDirectoryPermissions($directoryPath);
 
-            $mediaOpener = FFMpeg::fromDisk('nas')->open($this->file_path);
+            $mediaOpener = FFMpeg::fromDisk('nas')->open($this->getNormalizedFilePath());
             foreach (
                 [
                     3,

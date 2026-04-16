@@ -30,6 +30,7 @@ services:
         depends_on:
             - meilisearch
             - redis
+            - pgsql
         restart: unless-stopped
     meilisearch:
         image: 'getmeili/meilisearch:latest'
@@ -72,25 +73,28 @@ services:
             retries: 3
             timeout: 5s
         restart: unless-stopped
-    # whisper-api now runs directly on host OS with GPU support
-    # To start: sudo systemctl start whisper-api
-    # To enable on boot: sudo systemctl enable whisper-api
-    # whisper-api:
-    #     build: ./whisper-api
-    #     container_name: whisper-api
-    #     volumes:
-    #         - ./audio:/app/audio
-    #         - /mnt/brutus/jw:/app/jw
-    #     environment:
-    #         - MODEL=medium
-    #     ports:
-    #         - "5002:5000"
-    #     networks:
-    #         baron_network:
-    #             ipv4_address: 172.18.3.3
-    #             aliases:
-    #               - baron.myflix.whisper
-    #     restart: unless-stopped
+    pgsql:
+        image: 'postgres:17'
+        container_name: myflix-pgsql
+        ports:
+            - '${FORWARD_DB_PORT:-5432}:5432'
+        environment:
+            PGPASSWORD: '${DB_PASSWORD:-postgres}'
+            POSTGRES_DB: '${DB_DATABASE:-postgres}'
+            POSTGRES_USER: '${DB_USERNAME:-postgres}'
+            POSTGRES_PASSWORD: '${DB_PASSWORD:-postgres}'
+        volumes:
+            - 'sail-pgsql:/var/lib/postgresql/data'
+        networks:
+            baron_network:
+                ipv4_address: 172.18.3.4
+                aliases:
+                  - baron.myflix.pgsql
+        healthcheck:
+            test: ["CMD", "pg_isready", "-q", "-d", "${DB_DATABASE:-myflix}", "-U", "${DB_USERNAME:-sail}"]
+            retries: 3
+            timeout: 5s
+        restart: unless-stopped
 networks:
     baron_network:
         external: true
@@ -99,4 +103,6 @@ volumes:
     sail-meilisearch:
         driver: local
     sail-redis:
+        driver: local
+    sail-pgsql:
         driver: local

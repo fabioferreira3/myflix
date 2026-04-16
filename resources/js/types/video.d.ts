@@ -1,3 +1,12 @@
+export interface VideoMetadata {
+    title?: string;
+    author?: string;
+    date?: string;
+    participants?: string[];
+    tags?: string[];
+    [key: string]: unknown;
+}
+
 export interface Video {
     id: string;
     title: string;
@@ -6,7 +15,7 @@ export interface Video {
     url: string;
     transcription: string;
     diarization_text: string;
-    metadata: any;
+    metadata: VideoMetadata;
     audio_file_path: string;
     hls_path: string | null;
     conversion_progress: number;

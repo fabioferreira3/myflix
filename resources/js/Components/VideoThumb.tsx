@@ -1,7 +1,7 @@
 import { Link, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { KeyboardEvent, useState } from 'react';
 import { BsThreeDotsVertical as DotsIcon } from 'react-icons/bs';
-import { FaClock, FaFileAlt, FaRobot, FaSave } from 'react-icons/fa';
+import { FaClock, FaFileAlt, FaRobot, FaSave, FaTimes } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
 import { useOutsideClick } from '@/hooks/useOutsideClick';
@@ -17,6 +17,9 @@ export default function VideoThumb({ video }: VideoThumbProps) {
     const [showMenu, setShowMenu] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showTranscribeModal, setShowTranscribeModal] = useState(false);
+    const [showMetadataModal, setShowMetadataModal] = useState(false);
+    const [participantInput, setParticipantInput] = useState('');
+    const [tagInput, setTagInput] = useState('');
     const { innerBorderRef } = useOutsideClick(() => setEditing(false));
     const { innerBorderRef: innerMenuBorderRef } = useOutsideClick(() =>
         setShowMenu(false),
@@ -26,7 +29,7 @@ export default function VideoThumb({ video }: VideoThumbProps) {
         setData: setVideoData,
         post: postUpdate,
         processing: isUpdating,
-    } = useForm({ ...video });
+    } = useForm({ ...video, metadata: video.metadata as any });
 
     const {
         data: transcribeData,
@@ -56,11 +59,8 @@ export default function VideoThumb({ video }: VideoThumbProps) {
         postUpdate(route('videos.ai-analysis', video.id), {
             preserveScroll: true,
             preserveUrl: true,
-            onSuccess: () => {
-                toast.success('Video analysis completed!');
-            },
         });
-        toast.info('Analyzing video...');
+        toast.success('Analyzing video...');
         setShowMenu(false);
     };
 
@@ -74,6 +74,61 @@ export default function VideoThumb({ video }: VideoThumbProps) {
             onSuccess: () => {
                 toast.success('Transcription queued!');
                 setShowTranscribeModal(false);
+            },
+        });
+    };
+
+    const existingMeta = video.metadata ?? {};
+    const {
+        data: metadataData,
+        setData: setMetadataData,
+        post: postMetadata,
+        processing: isUpdatingMetadata,
+    } = useForm({
+        author: (existingMeta.author ?? '') as string,
+        date: (existingMeta.date ?? '') as string,
+        participants: (existingMeta.participants ?? []) as string[],
+        tags: (existingMeta.tags ?? []) as string[],
+    });
+
+    const addParticipant = () => {
+        const value = participantInput.trim();
+        if (!value) return;
+        setMetadataData('participants', [...metadataData.participants, value]);
+        setParticipantInput('');
+    };
+
+    const removeParticipant = (index: number) => {
+        setMetadataData(
+            'participants',
+            metadataData.participants.filter((_, i) => i !== index),
+        );
+    };
+
+    const addTag = () => {
+        const value = tagInput.trim();
+        if (!value) return;
+        setMetadataData('tags', [...metadataData.tags, value]);
+        setTagInput('');
+    };
+
+    const removeTag = (index: number) => {
+        setMetadataData(
+            'tags',
+            metadataData.tags.filter((_, i) => i !== index),
+        );
+    };
+
+    const handleMetadataSubmit = () => {
+        postMetadata(route('videos.update-metadata', video.id), {
+            preserveScroll: true,
+            preserveUrl: true,
+            onSuccess: () => {
+                toast.success('Metadata updated successfully');
+                setShowMetadataModal(false);
+            },
+            onError: () => {
+                toast.error('Failed to update metadata');
             },
         });
     };
@@ -126,7 +181,7 @@ export default function VideoThumb({ video }: VideoThumbProps) {
                             {showMenu && (
                                 <div
                                     ref={innerMenuBorderRef}
-                                    className="absolute bottom-full right-0 z-50 flex w-48 flex-col rounded-t border-x border-t border-b border-gray-500 bg-gray-700"
+                                    className="absolute bottom-full right-0 z-50 flex w-48 flex-col rounded-t border-x border-b border-t border-gray-500 bg-gray-700"
                                 >
                                     <button
                                         onClick={() => setShowEditModal(true)}
@@ -150,6 +205,15 @@ export default function VideoThumb({ video }: VideoThumbProps) {
                                             Analyze with AI
                                         </button>
                                     )}
+                                    <button
+                                        onClick={() => {
+                                            setShowMetadataModal(true);
+                                            setShowMenu(false);
+                                        }}
+                                        className="p-2 text-end hover:bg-gray-500"
+                                    >
+                                        Update Metadata
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -253,6 +317,199 @@ export default function VideoThumb({ video }: VideoThumbProps) {
                                     onClick={handleTranscriptSubmit}
                                 >
                                     {!isTranscribing ? 'Go' : 'Please wait...'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+            {showMetadataModal && (
+                <Modal
+                    maxWidth="lg"
+                    onClose={() => setShowMetadataModal(false)}
+                    show
+                    closeable
+                >
+                    <div className="bg-gray-800 p-6 text-white">
+                        <div className="mb-5 text-xl font-bold">
+                            Update Metadata: {video.title}
+                        </div>
+                        <div className="flex flex-col gap-5">
+                            {/* Author */}
+                            <div className="flex flex-col gap-1">
+                                <label className="text-sm font-semibold text-gray-300">
+                                    Author
+                                </label>
+                                <input
+                                    type="text"
+                                    value={metadataData.author}
+                                    onChange={(e) =>
+                                        setMetadataData(
+                                            'author',
+                                            e.target.value,
+                                        )
+                                    }
+                                    placeholder="e.g. Fabio Ferreira"
+                                    className="rounded bg-gray-700 px-3 py-2 text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-purple-500"
+                                />
+                            </div>
+
+                            {/* Date */}
+                            <div className="flex flex-col gap-1">
+                                <label className="text-sm font-semibold text-gray-300">
+                                    Date
+                                </label>
+                                <input
+                                    type="date"
+                                    title="date"
+                                    value={metadataData.date}
+                                    onChange={(e) =>
+                                        setMetadataData('date', e.target.value)
+                                    }
+                                    className="rounded bg-gray-700 px-3 py-2 text-white outline-none focus:ring-2 focus:ring-purple-500"
+                                />
+                            </div>
+
+                            {/* Participants */}
+                            <div className="flex flex-col gap-1">
+                                <label className="text-sm font-semibold text-gray-300">
+                                    Participants
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={participantInput}
+                                        onChange={(e) =>
+                                            setParticipantInput(e.target.value)
+                                        }
+                                        onKeyDown={(
+                                            e: KeyboardEvent<HTMLInputElement>,
+                                        ) => {
+                                            if (
+                                                e.key === 'Enter' ||
+                                                e.key === ','
+                                            ) {
+                                                e.preventDefault();
+                                                addParticipant();
+                                            }
+                                        }}
+                                        placeholder="Type name and press Enter"
+                                        className="flex-1 rounded bg-gray-700 px-3 py-2 text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-purple-500"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={addParticipant}
+                                        className="rounded bg-purple-600 px-3 py-2 hover:bg-purple-500"
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+                                {metadataData.participants.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {metadataData.participants.map(
+                                            (p, i) => (
+                                                <span
+                                                    key={i}
+                                                    className="flex items-center gap-1 rounded-full bg-gray-600 px-3 py-1 text-sm"
+                                                >
+                                                    {p}
+                                                    <button
+                                                        type="button"
+                                                        title="Remove participant"
+                                                        onClick={() =>
+                                                            removeParticipant(i)
+                                                        }
+                                                        className="ml-1 text-gray-400 hover:text-white"
+                                                    >
+                                                        <FaTimes size={10} />
+                                                    </button>
+                                                </span>
+                                            ),
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Tags */}
+                            <div className="flex flex-col gap-1">
+                                <label className="text-sm font-semibold text-gray-300">
+                                    Tags
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={tagInput}
+                                        onChange={(e) =>
+                                            setTagInput(e.target.value)
+                                        }
+                                        onKeyDown={(
+                                            e: KeyboardEvent<HTMLInputElement>,
+                                        ) => {
+                                            if (
+                                                e.key === 'Enter' ||
+                                                e.key === ','
+                                            ) {
+                                                e.preventDefault();
+                                                addTag();
+                                            }
+                                        }}
+                                        placeholder="Type tag and press Enter"
+                                        className="flex-1 rounded bg-gray-700 px-3 py-2 text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-purple-500"
+                                    />
+                                    <button
+                                        type="button"
+                                        className="rounded bg-purple-600 px-3 py-2 hover:bg-purple-500"
+                                        onClick={addTag}
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+                                {metadataData.tags.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {metadataData.tags.map((t, i) => (
+                                            <span
+                                                key={i}
+                                                className="flex items-center gap-1 rounded-full bg-purple-800 px-3 py-1 text-sm"
+                                            >
+                                                {t}
+                                                <button
+                                                    type="button"
+                                                    title="Remove tag"
+                                                    onClick={() => removeTag(i)}
+                                                    className="ml-1 text-purple-300 hover:text-white"
+                                                >
+                                                    <FaTimes size={10} />
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Submit */}
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowMetadataModal(false)}
+                                    className="rounded bg-gray-600 px-4 py-2 hover:bg-gray-500"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={isUpdatingMetadata}
+                                    onClick={handleMetadataSubmit}
+                                    className="flex items-center gap-2 rounded bg-purple-600 px-4 py-2 hover:bg-purple-500 disabled:opacity-50"
+                                >
+                                    {isUpdatingMetadata ? (
+                                        <>
+                                            <FaClock /> Saving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FaSave /> Save
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>

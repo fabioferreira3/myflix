@@ -29,6 +29,7 @@ Route::post('/videos/translate/{video}', [VideoController::class, 'translate'])-
 Route::post('/videos/segments/{video}', [VideoController::class, 'assignSegments'])->name('videos.assign-segments');
 Route::get('/videos/download-audio/{video}', [VideoController::class, 'downloadAudio'])->name('videos.download-audio');
 Route::post('/videos/convert-hls/{video}', [VideoController::class, 'convertToHLS'])->name('videos.convert-hls');
+Route::post('/videos/update-metadata/{video}', [VideoController::class, 'updateMetadata'])->name('videos.update-metadata');
 Route::post('/videos/{video}', [VideoController::class, 'update'])->name('videos.update');
 
 Route::get('/segments/{segment}', [SegmentController::class, 'index'])->name('segments.index');
